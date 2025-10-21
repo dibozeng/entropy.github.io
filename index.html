@@ -1,10 +1,127 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-    <meta http-equiv="Refresh" content="0; url=ME-TradeOS-Web.pdf">
-    <!-- 说明：content="0"代表0秒后跳转，url填写你的PDF文件名 -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PPT 在线浏览</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: #111;
+      color: #fff;
+      text-align: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    }
+    img {
+      width: 100%;
+      max-width: 900px;
+      height: auto;
+      margin: 20px auto;
+      display: block;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      border-radius: 8px;
+      background: #111;
+      transition: opacity .3s ease;
+      opacity: 0;
+    }
+    .loaded img {
+      opacity: 1;
+    }
+    .ph {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border-radius: 8px;
+      background: linear-gradient(120deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      position: relative;
+      overflow: hidden;
+    }
+    .ph::after {
+      content: '';
+      position: absolute;
+      left: -40%;
+      top: 0;
+      width: 40%;
+      height: 4px;
+      background: linear-gradient(90deg, transparent, #5bb8ff, transparent);
+      animation: move 2s linear infinite;
+    }
+    @keyframes move {
+      to { transform: translateX(350%); }
+    }
+  </style>
 </head>
 <body>
-    正在加载产品手册...（若未跳转，点击<a href="ME-TradeOS-Web.pdf">这里</a>）
+<main id="root"></main>
+
+<script>
+const CONFIG = {
+  n: 8,              // 图片总数
+  prefix: 'page',     // 文件名前缀
+  ext: 'png',         // 扩展名
+  pad: 1,             // 数字位数（不补零）
+  start: 1            // 起始编号
+};
+
+const root = document.getElementById('root');
+const pages = [];
+
+function pad(num, size){
+  let s = String(num);
+  while(s.length < size) s = '0' + s;
+  return s;
+}
+
+for(let i = CONFIG.start; i < CONFIG.start + CONFIG.n; i++){
+  const num = i - CONFIG.start + 1;
+  const file = `images/${CONFIG.prefix}${pad(i, CONFIG.pad)}.${CONFIG.ext}`; // 从 images 文件夹加载
+
+  const section = document.createElement('section');
+  section.className = 'page';
+
+  const ph = document.createElement('div');
+  ph.className = 'ph';
+
+  const img = document.createElement('img');
+  img.alt = `第 ${num} 页`;
+  img.decoding = 'async';
+  img.loading = 'lazy';
+  img.dataset.src = file;
+
+  section.appendChild(ph);
+  section.appendChild(img);
+  root.appendChild(section);
+  pages.push(section);
+}
+
+// 懒加载
+if('IntersectionObserver' in window){
+  const io = new IntersectionObserver((entries) =>{
+    entries.forEach(entry =>{
+      if(entry.isIntersecting){
+        const section = entry.target;
+        const img = section.querySelector('img');
+        if(img && !img.src){
+          img.src = img.dataset.src;
+          img.addEventListener('load', ()=>{
+            section.classList.add('loaded');
+            section.querySelector('.ph').style.display = 'none';
+          }, {once:true});
+        }
+        io.unobserve(section);
+      }
+    })
+  }, { rootMargin: '600px 0px' });
+  pages.forEach(p => io.observe(p));
+} else {
+  document.querySelectorAll('img[data-src]').forEach(img=>{
+    img.src = img.dataset.src;
+    img.addEventListener('load', ()=>{
+      img.closest('.page').classList.add('loaded');
+      img.closest('.page').querySelector('.ph').style.display = 'none';
+    }, {once:true});
+  });
+}
+</script>
 </body>
 </html>
